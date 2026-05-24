@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>S-UI 编辑客户端月卡原型</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="logo">S</div>
+      <div class="nav">⌂</div>
+      <div class="nav">⇩</div>
+      <div class="nav active">♟</div>
+      <div class="nav">☁</div>
+      <div class="nav">⚙</div>
+    </aside>
+    <div class="topbar">用户管理</div>
+    <section class="content">
+      <div class="table-card" style="opacity:.5">
+        <table>
+          <thead><tr><th>名称</th><th>操作</th><th>本周期用量</th><th>状态</th><th>下次重置</th></tr></thead>
+          <tbody><tr><td>wuyuxue</td><td>✎ 🗑 ▦ ⌁</td><td>200.00 GB / 200.00 GB</td><td>流量用尽</td><td>2026/06/11</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+    <div class="modal-scrim">
+      <div class="modal">
+        <div class="modal-title">编辑 客户端</div>
+        <div class="tabs"><div class="tab active">基础</div><div class="tab">配置</div><div class="tab">链接</div></div>
+        <div class="form">
+          <div class="row">
+            <div class="field"><label>启用</label><div class="value">关闭，流量用尽</div></div>
+            <div class="field"><label>组</label><div class="value">vip</div></div>
+            <div class="field"><label>名称</label><div class="value">wuyuxue</div></div>
+          </div>
+          <div class="monthly-box">
+            <div class="box-head">
+              <strong>月卡配置</strong>
+              <span class="chip red">流量用尽</span>
+            </div>
+            <div class="row">
+              <div class="field"><label>月卡额度</label><div class="value">250 GiB</div></div>
+              <div class="field"><label>套餐周期</label><div class="value">30 天</div></div>
+              <div class="field"><label>下次重置</label><div class="value">2026/06/11 20:00</div></div>
+            </div>
+            <div class="row">
+              <div class="field"><label>本周期用量</label><div class="value">200.00 GB (80%)</div><div class="mini-progress" style="width:100%;"><span style="width:80%"></span></div></div>
+              <div class="field"><label>剩余额度</label><div class="value">50.00 GB</div></div>
+              <div class="field"><label>流量方向</label><div class="value">↑ 12.14 GB / ↓ 187.86 GB</div></div>
+            </div>
+            <div class="chip green">加额后将自动恢复启用</div>
+            <div class="subtle" style="margin-top:10px;">修改额度不会清零已用流量；从 200G 调到 250G 后，当前周期剩余约 50G。</div>
+          </div>
+          <div class="row">
+            <div class="field"><label>入站标签</label><div class="value"><span class="chip">vless-reality</span></div></div>
+            <div class="field"><label>到期</label><div class="value">无限</div></div>
+            <div class="field"><label>历史总用量</label><div class="value">1.24 TB</div></div>
+          </div>
+        </div>
+        <div class="actions"><button class="button">关闭</button><button class="button primary">保存</button></div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

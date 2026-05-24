@@ -1,0 +1,334 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+  color: #202124;
+  background: #f6f7f8;
+}
+
+.shell {
+  width: 2048px;
+  height: 1024px;
+  overflow: hidden;
+  background: #f6f7f8;
+  position: relative;
+}
+
+.topbar {
+  height: 68px;
+  background: #fafafa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.sidebar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 64px;
+  background: #f1f2f3;
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  padding-top: 18px;
+  color: #666;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #aaa;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #888;
+}
+
+.nav {
+  width: 42px;
+  height: 42px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+}
+
+.nav.active {
+  background: #dedede;
+  color: #111;
+}
+
+.content {
+  margin-left: 64px;
+  padding: 34px 54px;
+}
+
+.center {
+  max-width: 1260px;
+  margin: 0 auto;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0 10px;
+}
+
+.button {
+  border: 0;
+  border-radius: 5px;
+  padding: 11px 20px;
+  background: #e2e3e4;
+  font-size: 15px;
+  color: #222;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, .16);
+}
+
+.primary {
+  background: #1565c0;
+  color: #fff;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.card {
+  background: #f7f8f9;
+  border: 1px solid #202124;
+  border-radius: 8px;
+  min-height: 210px;
+  padding: 18px 24px;
+}
+
+.card h2,
+.card h3 {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 23px;
+}
+
+.pool {
+  grid-column: span 4;
+  min-height: 190px;
+  display: grid;
+  grid-template-columns: 1.5fr 1.35fr 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.metric-label {
+  color: #666;
+  font-size: 15px;
+}
+
+.metric-value {
+  font-size: 42px;
+  font-weight: 650;
+  margin: 8px 0;
+}
+
+.pool .metric-value {
+  font-size: 38px;
+}
+
+.subtle {
+  color: #666;
+  font-size: 14px;
+}
+
+.progress {
+  height: 12px;
+  background: #e4e8ea;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  background: #2e7d32;
+}
+
+.bar.warn {
+  background: #f59f00;
+}
+
+.top-user {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 28px;
+  border-bottom: 1px solid #e2e2e2;
+}
+
+.table-card {
+  margin-top: 32px;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .24);
+  overflow: hidden;
+  background: #f7f7f7;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 18px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 18px 22px;
+  border-bottom: 1px solid #d8d8d8;
+}
+
+th {
+  font-weight: 650;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: #dfdfdf;
+  font-size: 15px;
+}
+
+.chip.green {
+  background: #2e9d56;
+  color: #fff;
+}
+
+.chip.blue {
+  background: #1665c1;
+  color: #fff;
+}
+
+.chip.red {
+  background: #c62828;
+  color: #fff;
+}
+
+.chip.orange {
+  background: #f59f00;
+  color: #111;
+}
+
+.mini-progress {
+  width: 320px;
+  height: 6px;
+  background: #dfe8df;
+  margin-top: 7px;
+}
+
+.mini-progress span {
+  display: block;
+  height: 100%;
+  background: #43a047;
+}
+
+.modal-scrim {
+  position: absolute;
+  inset: 0 0 0 64px;
+  background: rgba(0, 0, 0, .34);
+  display: grid;
+  place-items: center;
+}
+
+.modal {
+  width: 1080px;
+  background: #fff;
+  border-radius: 9px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .35);
+  overflow: hidden;
+}
+
+.modal-title {
+  padding: 18px 24px;
+  font-size: 25px;
+  font-weight: 650;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  padding: 18px 0 4px;
+}
+
+.tab {
+  padding: 9px 28px 14px;
+  border-bottom: 3px solid transparent;
+  font-weight: 650;
+}
+
+.tab.active {
+  border-bottom-color: #202124;
+}
+
+.form {
+  padding: 0 22px 18px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.field {
+  background: #f4f4f4;
+  border-bottom: 1px solid #aaa;
+  min-height: 74px;
+  padding: 10px 14px;
+}
+
+.field label {
+  display: block;
+  color: #777;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.field .value {
+  font-size: 24px;
+}
+
+.monthly-box {
+  border: 1px solid #d5d8db;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 12px 0;
+  background: #fafafa;
+}
+
+.box-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 10px 14px 14px;
+}

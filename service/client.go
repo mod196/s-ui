@@ -17,6 +17,13 @@ import (
 
 type ClientService struct{}
 
+const (
+	defaultMonthlyResetDays = 30
+
+	DisableReasonQuota  = "quota"
+	DisableReasonExpiry = "expiry"
+)
+
 func (s *ClientService) Get(id string) (*[]model.Client, error) {
 	if id == "" {
 		return s.GetAll()
@@ -39,7 +46,7 @@ func (s *ClientService) GetAll() (*[]model.Client, error) {
 	db := database.GetDB()
 	var clients []model.Client
 	err := db.Model(model.Client{}).
-		Select("`id`, `enable`, `name`, `desc`, `group`, `inbounds`, `up`, `down`, `volume`, `expiry`").
+		Select("`id`, `enable`, `name`, `desc`, `group`, `inbounds`, `up`, `down`, `volume`, `expiry`, `delay_start`, `auto_reset`, `reset_days`, `next_reset`, `total_up`, `total_down`, `disable_reason`").
 		Scan(&clients).Error
 	if err != nil {
 		return nil, err
@@ -55,6 +62,10 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 	case "new", "edit":
 		var client model.Client
 		err = json.Unmarshal(data, &client)
+		if err != nil {
+			return nil, err
+		}
+		err = s.applyMonthlyQuotaPolicy(tx, &client, act == "new")
 		if err != nil {
 			return nil, err
 		}
@@ -84,6 +95,12 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 		if err != nil {
 			return nil, err
 		}
+		for _, client := range clients {
+			err = s.applyMonthlyQuotaPolicy(tx, client, true)
+			if err != nil {
+				return nil, err
+			}
+		}
 		err = json.Unmarshal(clients[0].Inbounds, &inboundIds)
 		if err != nil {
 			return nil, err
@@ -103,6 +120,10 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 			return nil, err
 		}
 		for _, client := range clients {
+			err = s.applyMonthlyQuotaPolicy(tx, client, false)
+			if err != nil {
+				return nil, err
+			}
 			changedInboundIds, err := s.findInboundsChanges(tx, client, true)
 			if err != nil {
 				return nil, err
@@ -168,6 +189,68 @@ func (s *ClientService) Save(tx *gorm.DB, act string, data json.RawMessage, host
 	}
 
 	return inboundIds, nil
+}
+
+func (s *ClientService) applyMonthlyQuotaPolicy(tx *gorm.DB, client *model.Client, isNew bool) error {
+	now := time.Now().Unix()
+	var oldClient model.Client
+	hasOldClient := false
+	if !isNew && client.Id > 0 {
+		err := tx.Model(model.Client{}).Where("id = ?", client.Id).First(&oldClient).Error
+		if err != nil {
+			return err
+		}
+		hasOldClient = true
+	}
+
+	if client.AutoReset || isNew {
+		if client.ResetDays <= 0 {
+			client.ResetDays = defaultMonthlyResetDays
+		}
+	}
+	if isNew && client.Volume > 0 {
+		client.AutoReset = true
+	}
+	if client.AutoReset && client.NextReset <= 0 && !client.DelayStart {
+		client.NextReset = now + int64(client.ResetDays)*86400
+	}
+	if !client.AutoReset {
+		client.NextReset = 0
+	}
+
+	usage := client.Up + client.Down
+	isQuotaDepleted := client.Volume > 0 && usage >= client.Volume
+	isExpired := client.Expiry > 0 && client.Expiry < now
+
+	if hasOldClient && oldClient.DisableReason == DisableReasonQuota && !isQuotaDepleted && !isExpired {
+		client.Enable = true
+		client.DisableReason = ""
+		return nil
+	}
+
+	if isExpired {
+		client.Enable = false
+		client.DisableReason = DisableReasonExpiry
+		return nil
+	}
+	if isQuotaDepleted {
+		client.Enable = false
+		client.DisableReason = DisableReasonQuota
+		return nil
+	}
+	if client.Enable {
+		client.DisableReason = ""
+		return nil
+	}
+
+	if hasOldClient && oldClient.DisableReason == DisableReasonQuota {
+		client.DisableReason = DisableReasonQuota
+	} else if hasOldClient && oldClient.DisableReason == DisableReasonExpiry {
+		client.DisableReason = DisableReasonExpiry
+	} else {
+		client.DisableReason = ""
+	}
+	return nil
 }
 
 func (s *ClientService) updateLinksWithFixedInbounds(tx *gorm.DB, clients []*model.Client, hostname string) error {
@@ -366,9 +449,7 @@ func (s *ClientService) UpdateLinksByInboundChange(tx *gorm.DB, inbounds *[]mode
 
 func (s *ClientService) DepleteClients() ([]uint, error) {
 	var err error
-	var clients []model.Client
 	var changes []model.Changes
-	var users []string
 	var inboundIds []uint
 
 	dt := time.Now().Unix()
@@ -392,36 +473,59 @@ func (s *ClientService) DepleteClients() ([]uint, error) {
 		return nil, err
 	}
 
-	// Deplete clients
-	err = tx.Model(model.Client{}).Where("enable = true AND ((volume >0 AND up+down > volume) OR (expiry > 0 AND expiry < ?))", dt).Scan(&clients).Error
-	if err != nil {
-		return nil, err
+	depleteGroups := []struct {
+		reason    string
+		condition string
+		args      []interface{}
+	}{
+		{
+			reason:    DisableReasonQuota,
+			condition: "enable = true AND volume > 0 AND up + down >= volume",
+		},
+		{
+			reason:    DisableReasonExpiry,
+			condition: "enable = true AND expiry > 0 AND expiry < ?",
+			args:      []interface{}{dt},
+		},
 	}
 
-	for _, client := range clients {
-		logger.Debug("Client ", client.Name, " is going to be disabled")
-		users = append(users, client.Name)
-		var userInbounds []uint
-		json.Unmarshal(client.Inbounds, &userInbounds)
-		// Find changed inbounds
-		inboundIds = common.UnionUintArray(inboundIds, userInbounds)
-		changes = append(changes, model.Changes{
-			DateTime: dt,
-			Actor:    "DepleteJob",
-			Key:      "clients",
-			Action:   "disable",
-			Obj:      json.RawMessage("\"" + client.Name + "\""),
-		})
-	}
-
-	// Save changes
-	if len(changes) > 0 {
-		err = tx.Model(model.Client{}).Where("enable = true AND ((volume >0 AND up+down > volume) OR (expiry > 0 AND expiry < ?))", dt).Update("enable", false).Error
+	for _, group := range depleteGroups {
+		var clients []model.Client
+		err = tx.Model(model.Client{}).Where(group.condition, group.args...).Scan(&clients).Error
 		if err != nil {
 			return nil, err
 		}
-		err = tx.Model(model.Changes{}).Create(&changes).Error
+		if len(clients) == 0 {
+			continue
+		}
+
+		clientIds := make([]uint, 0, len(clients))
+		for _, client := range clients {
+			logger.Debug("Client ", client.Name, " is going to be disabled by ", group.reason)
+			clientIds = append(clientIds, client.Id)
+			var userInbounds []uint
+			json.Unmarshal(client.Inbounds, &userInbounds)
+			inboundIds = common.UnionUintArray(inboundIds, userInbounds)
+			changes = append(changes, model.Changes{
+				DateTime: dt,
+				Actor:    "DepleteJob",
+				Key:      "clients",
+				Action:   "disable",
+				Obj:      json.RawMessage("\"" + client.Name + "\""),
+			})
+		}
+
+		err = tx.Model(model.Client{}).Where("id in ?", clientIds).Updates(map[string]interface{}{
+			"enable":         false,
+			"disable_reason": group.reason,
+		}).Error
 		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(changes) > 0 {
+		if err = tx.Model(model.Changes{}).Create(&changes).Error; err != nil {
 			return nil, err
 		}
 		LastUpdate = dt
@@ -485,8 +589,9 @@ func (s *ClientService) ResetClients(tx *gorm.DB, dt int64) ([]uint, error) {
 		client.TotalDown += client.Down
 		client.Up = 0
 		client.Down = 0
-		if !client.Enable {
+		if !client.Enable && client.DisableReason == DisableReasonQuota {
 			client.Enable = true
+			client.DisableReason = ""
 			var clientInboundIds []uint
 			json.Unmarshal(client.Inbounds, &clientInboundIds)
 			inboundIds = common.UnionUintArray(inboundIds, clientInboundIds)

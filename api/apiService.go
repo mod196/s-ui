@@ -107,6 +107,11 @@ func (a *ApiService) getData(c *gin.Context) (interface{}, error) {
 	} else {
 		data["onlines"] = onlines
 	}
+	trafficPool, err := a.StatsService.GetTrafficPool()
+	if err != nil {
+		return "", err
+	}
+	data["trafficPool"] = trafficPool
 
 	return data, nil
 }
@@ -203,6 +208,15 @@ func (a *ApiService) GetStats(c *gin.Context) {
 		return
 	}
 	jsonObj(c, data, err)
+}
+
+func (a *ApiService) GetTrafficPool(c *gin.Context) {
+	data, err := a.StatsService.GetTrafficPool()
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	jsonObj(c, data, nil)
 }
 
 func (a *ApiService) GetStatus(c *gin.Context) {

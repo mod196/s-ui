@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>S-UI 月流量池首页原型</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="logo">S</div>
+      <div class="nav active">⌂</div>
+      <div class="nav">⇩</div>
+      <div class="nav">♟</div>
+      <div class="nav">☁</div>
+      <div class="nav">⚙</div>
+    </aside>
+    <div class="topbar">主页</div>
+    <section class="content">
+      <div class="center">
+        <div class="toolbar">
+          <button class="button">信息卡 ✦</button>
+          <button class="button">备份与恢复 ⦿</button>
+          <button class="button">日志 ▣</button>
+          <button class="button">使用量与统计 ▤</button>
+        </div>
+        <div class="grid">
+          <article class="card pool">
+            <div>
+              <div class="metric-label">VPS 月流量池</div>
+              <div class="metric-value">184.73 GB / 1000 GB</div>
+              <div class="subtle">账单月：2026/05/01 - 2026/06/01</div>
+            </div>
+            <div>
+              <div class="metric-label">剩余 815.27 GB，当前使用率 18%</div>
+              <div class="progress" style="margin-top: 14px;"><div class="bar" style="width:18%"></div></div>
+              <div class="subtle" style="margin-top: 10px;">总池只展示和告警，不限制用户额度保存</div>
+            </div>
+            <div>
+              <div class="metric-label" style="margin-bottom: 8px;">Top 用户</div>
+              <div class="top-user"><span>leo</span><strong>126.40 GB</strong></div>
+              <div class="top-user"><span>haichao</span><strong>42.18 GB</strong></div>
+              <div class="top-user"><span>wuyuxue</span><strong>16.15 GB</strong></div>
+            </div>
+          </article>
+          <article class="card"><h3>CPU 仪表</h3><div class="metric-value" style="text-align:center;margin-top:52px;">0%</div></article>
+          <article class="card"><h3>RAM 仪表</h3><div class="metric-value" style="text-align:center;margin-top:52px;">306MB / 8GB</div></article>
+          <article class="card"><h3>系统信息</h3><div class="top-user"><span>主机</span><strong>xray</strong></div><div class="top-user"><span>CPU</span><span class="chip">8 核心</span></div><div class="top-user"><span>S-UI</span><span class="chip blue">v1.4.2</span></div></article>
+          <article class="card"><h3>运行信息</h3><div class="top-user"><span>运行状态</span><span class="chip green">确认</span></div><div class="top-user"><span>内存</span><span class="chip blue">9.63 MB</span></div><div class="top-user"><span>在线</span><span class="chip green">3</span></div></article>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

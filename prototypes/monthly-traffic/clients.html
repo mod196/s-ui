@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>S-UI 用户管理月卡原型</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="logo">S</div>
+      <div class="nav">⌂</div>
+      <div class="nav">⇩</div>
+      <div class="nav active">♟</div>
+      <div class="nav">☁</div>
+      <div class="nav">⚙</div>
+    </aside>
+    <div class="topbar">用户管理</div>
+    <section class="content">
+      <div class="toolbar">
+        <button class="button primary">添加</button>
+        <button class="button">批量工具 ⚒</button>
+        <button class="button">筛选 ⏷</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>描述</th>
+              <th>组</th>
+              <th>操作</th>
+              <th>本周期用量</th>
+              <th>下次重置</th>
+              <th>状态</th>
+              <th>到期</th>
+              <th>在线</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>leo</td>
+              <td>个人月卡</td>
+              <td>default</td>
+              <td>✎ 🗑 ▦ ⌁</td>
+              <td>
+                <span class="chip">200.00 GB / 250.00 GB</span>
+                <div class="subtle">剩余额度：50.00 GB</div>
+                <div class="mini-progress"><span style="width:80%"></span></div>
+              </td>
+              <td>2026/06/23</td>
+              <td><span class="chip green">可用</span></td>
+              <td><span class="chip">无限</span></td>
+              <td><span class="chip green">在线</span></td>
+            </tr>
+            <tr>
+              <td>haichao</td>
+              <td>临近用尽</td>
+              <td>default</td>
+              <td>✎ 🗑 ▦ ⌁</td>
+              <td>
+                <span class="chip orange">185.30 GB / 200.00 GB</span>
+                <div class="subtle">剩余额度：14.70 GB</div>
+                <div class="mini-progress"><span style="width:93%;background:#f59f00"></span></div>
+              </td>
+              <td>2026/06/18</td>
+              <td><span class="chip orange">接近上限</span></td>
+              <td><span class="chip">无限</span></td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td>wuyuxue</td>
+              <td>已用光，待加额</td>
+              <td>vip</td>
+              <td>✎ 🗑 ▦ ⌁</td>
+              <td>
+                <span class="chip red">200.00 GB / 200.00 GB</span>
+                <div class="subtle">剩余额度：0 B</div>
+                <div class="mini-progress"><span style="width:100%;background:#c62828"></span></div>
+              </td>
+              <td>2026/06/11</td>
+              <td><span class="chip red">流量用尽</span></td>
+              <td><span class="chip">无限</span></td>
+              <td>-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

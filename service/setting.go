@@ -42,34 +42,44 @@ var defaultConfig = `{
 }`
 
 var defaultValueMap = map[string]string{
-	"webListen":     "",
-	"webDomain":     "",
-	"webPort":       "2095",
-	"secret":        common.Random(32),
-	"webCertFile":   "",
-	"webKeyFile":    "",
-	"webPath":       "/app/",
-	"webURI":        "",
-	"sessionMaxAge": "0",
-	"trafficAge":    "30",
-	"timeLocation":  "Asia/Tehran",
-	"subListen":     "",
-	"subPort":       "2096",
-	"subPath":       "/sub/",
-	"subDomain":     "",
-	"subCertFile":   "",
-	"subKeyFile":    "",
-	"subUpdates":    "12",
-	"subEncode":     "true",
-	"subShowInfo":   "false",
-	"subURI":        "",
-	"subJsonExt":    "",
-	"subClashExt":   "",
-	"config":        defaultConfig,
-	"version":       config.GetVersion(),
+	"webListen":             "",
+	"webDomain":             "",
+	"webPort":               "2095",
+	"secret":                common.Random(32),
+	"webCertFile":           "",
+	"webKeyFile":            "",
+	"webPath":               "/app/",
+	"webURI":                "",
+	"sessionMaxAge":         "0",
+	"trafficAge":            "30",
+	"timeLocation":          "Asia/Tehran",
+	"trafficPoolLimitBytes": strconv.FormatInt(defaultTrafficPoolBytes, 10),
+	"trafficPoolCycleDays":  strconv.Itoa(defaultTrafficPoolCycleDays),
+	"trafficPoolSource":     defaultTrafficPoolSource,
+	"subListen":             "",
+	"subPort":               "2096",
+	"subPath":               "/sub/",
+	"subDomain":             "",
+	"subCertFile":           "",
+	"subKeyFile":            "",
+	"subUpdates":            "12",
+	"subEncode":             "true",
+	"subShowInfo":           "false",
+	"subURI":                "",
+	"subJsonExt":            "",
+	"subClashExt":           "",
+	"config":                defaultConfig,
+	"version":               config.GetVersion(),
 }
 
 type SettingService struct {
+}
+
+type TrafficPoolConfig struct {
+	LimitBytes int64  `json:"limitBytes"`
+	CycleDays  int    `json:"cycleDays"`
+	AnchorAt   int64  `json:"anchorAt"`
+	Source     string `json:"source"`
 }
 
 func (s *SettingService) GetAllSetting() (*map[string]string, error) {
@@ -94,6 +104,15 @@ func (s *SettingService) GetAllSetting() (*map[string]string, error) {
 			allSetting[key] = defaultValue
 		}
 	}
+
+	trafficPool, err := s.GetTrafficPoolConfig()
+	if err != nil {
+		return nil, err
+	}
+	allSetting["trafficPoolLimitBytes"] = strconv.FormatInt(trafficPool.LimitBytes, 10)
+	allSetting["trafficPoolCycleDays"] = strconv.Itoa(trafficPool.CycleDays)
+	allSetting["trafficPoolAnchorAt"] = strconv.FormatInt(trafficPool.AnchorAt, 10)
+	allSetting["trafficPoolSource"] = trafficPool.Source
 
 	// Due to security principles
 	delete(allSetting, "secret")
@@ -175,6 +194,106 @@ func (s *SettingService) getInt(key string) (int, error) {
 func (s *SettingService) setInt(key string, value int) error {
 	return s.setString(key, strconv.Itoa(value))
 }
+
+func (s *SettingService) getPositiveIntSetting(key string, fallback int) (int, error) {
+	setting, err := s.getSetting(key)
+	var value string
+	if database.IsNotFound(err) {
+		value = strconv.Itoa(fallback)
+		if err = s.saveSetting(key, value); err != nil {
+			return 0, err
+		}
+	} else if err != nil {
+		return 0, err
+	} else {
+		value = setting.Value
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed <= 0 {
+		parsed = fallback
+		if err = s.saveSetting(key, strconv.Itoa(parsed)); err != nil {
+			return 0, err
+		}
+	}
+	return parsed, nil
+}
+
+func (s *SettingService) getPositiveInt64Setting(key string, fallback int64) (int64, error) {
+	setting, err := s.getSetting(key)
+	var value string
+	if database.IsNotFound(err) {
+		value = strconv.FormatInt(fallback, 10)
+		if err = s.saveSetting(key, value); err != nil {
+			return 0, err
+		}
+	} else if err != nil {
+		return 0, err
+	} else {
+		value = setting.Value
+	}
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed <= 0 {
+		parsed = fallback
+		if err = s.saveSetting(key, strconv.FormatInt(parsed, 10)); err != nil {
+			return 0, err
+		}
+	}
+	return parsed, nil
+}
+
+func (s *SettingService) getStringSetting(key string, fallback string) (string, error) {
+	setting, err := s.getSetting(key)
+	var value string
+	if database.IsNotFound(err) {
+		value = fallback
+		if err = s.saveSetting(key, value); err != nil {
+			return "", err
+		}
+	} else if err != nil {
+		return "", err
+	} else {
+		value = setting.Value
+	}
+	if strings.TrimSpace(value) == "" {
+		value = fallback
+		if err = s.saveSetting(key, value); err != nil {
+			return "", err
+		}
+	}
+	return value, nil
+}
+
+func (s *SettingService) GetTrafficPoolConfig() (*TrafficPoolConfig, error) {
+	limitBytes, err := s.getPositiveInt64Setting("trafficPoolLimitBytes", defaultTrafficPoolBytes)
+	if err != nil {
+		return nil, err
+	}
+	cycleDays, err := s.getPositiveIntSetting("trafficPoolCycleDays", defaultTrafficPoolCycleDays)
+	if err != nil {
+		return nil, err
+	}
+	source, err := s.getStringSetting("trafficPoolSource", defaultTrafficPoolSource)
+	if err != nil {
+		return nil, err
+	}
+	if source != defaultTrafficPoolSource {
+		source = defaultTrafficPoolSource
+		if err = s.saveSetting("trafficPoolSource", source); err != nil {
+			return nil, err
+		}
+	}
+	anchorAt, err := s.getPositiveInt64Setting("trafficPoolAnchorAt", trafficPoolNow().UTC().Unix())
+	if err != nil {
+		return nil, err
+	}
+	return &TrafficPoolConfig{
+		LimitBytes: limitBytes,
+		CycleDays:  cycleDays,
+		AnchorAt:   anchorAt,
+		Source:     source,
+	}, nil
+}
+
 func (s *SettingService) GetListen() (string, error) {
 	return s.getString("webListen")
 }

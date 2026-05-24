@@ -43,6 +43,8 @@ type Client struct {
 	NextReset  int64 `json:"nextReset" form:"nextReset" gorm:"default:0;not null"`
 	TotalUp    int64 `json:"totalUp" form:"totalUp" gorm:"default:0;not null"`
 	TotalDown  int64 `json:"totalDown" form:"totalDown" gorm:"default:0;not null"`
+
+	DisableReason string `json:"disableReason" form:"disableReason" gorm:"default:'';not null"`
 }
 
 type Stats struct {

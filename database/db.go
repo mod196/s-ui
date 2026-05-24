@@ -33,6 +33,17 @@ func initUser() error {
 	return nil
 }
 
+func initMonthlyQuotaDefaults() error {
+	now := time.Now().Unix()
+	return db.Model(&model.Client{}).
+		Where("volume > 0 AND auto_reset = false AND reset_days = 0 AND next_reset = 0").
+		Updates(map[string]interface{}{
+			"auto_reset": true,
+			"reset_days": 30,
+			"next_reset": now + 30*86400,
+		}).Error
+}
+
 func OpenDB(dbPath string) error {
 	dir := path.Dir(dbPath)
 	err := os.MkdirAll(dir, 01740)
@@ -111,6 +122,10 @@ func InitDB(dbPath string) error {
 		return err
 	}
 	err = initUser()
+	if err != nil {
+		return err
+	}
+	err = initMonthlyQuotaDefaults()
 	if err != nil {
 		return err
 	}

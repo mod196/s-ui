@@ -21,6 +21,34 @@ var onlineResources = &onlines{}
 type StatsService struct {
 }
 
+const (
+	defaultTrafficPoolBytes     int64 = 1000 * 1024 * 1024 * 1024
+	defaultTrafficPoolCycleDays       = 30
+	defaultTrafficPoolSource          = "user"
+)
+
+var trafficPoolNow = time.Now
+
+type TrafficPoolUser struct {
+	Name  string `json:"name"`
+	Up    int64  `json:"up"`
+	Down  int64  `json:"down"`
+	Total int64  `json:"total"`
+}
+
+type TrafficPoolSummary struct {
+	Limit       int64             `json:"limit"`
+	Used        int64             `json:"used"`
+	Remaining   int64             `json:"remaining"`
+	Percent     int64             `json:"percent"`
+	StartedAt   int64             `json:"startedAt"`
+	EndedAt     int64             `json:"endedAt"`
+	NextResetAt int64             `json:"nextResetAt"`
+	CycleDays   int               `json:"cycleDays"`
+	Source      string            `json:"source"`
+	Users       []TrafficPoolUser `json:"users"`
+}
+
 func (s *StatsService) SaveStats(enableTraffic bool) error {
 	if corePtr == nil || !corePtr.IsRunning() {
 		return nil
@@ -156,6 +184,76 @@ func (s *StatsService) downsampleStats(stats []model.Stats, maxRows int) []model
 func (s *StatsService) GetOnlines() (onlines, error) {
 	return *onlineResources, nil
 }
+
+func (s *StatsService) GetTrafficPool() (*TrafficPoolSummary, error) {
+	config, err := (&SettingService{}).GetTrafficPoolConfig()
+	if err != nil {
+		return nil, err
+	}
+	start, end := trafficPoolWindow(config.AnchorAt, config.CycleDays, trafficPoolNow())
+
+	db := database.GetDB()
+	var users []TrafficPoolUser
+	err = db.Model(model.Stats{}).
+		Select(`tag as name,
+			sum(case when direction = true then traffic else 0 end) as up,
+			sum(case when direction = false then traffic else 0 end) as down,
+			sum(traffic) as total`).
+		Where("resource = ? AND date_time >= ? AND date_time < ?", config.Source, start, end).
+		Group("tag").
+		Order("total desc").
+		Scan(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var used int64
+	for _, user := range users {
+		used += user.Total
+	}
+	remaining := config.LimitBytes - used
+	if remaining < 0 {
+		remaining = 0
+	}
+	percent := int64(0)
+	if config.LimitBytes > 0 {
+		percent = used * 100 / config.LimitBytes
+	}
+
+	if len(users) > 5 {
+		users = users[:5]
+	}
+
+	return &TrafficPoolSummary{
+		Limit:       config.LimitBytes,
+		Used:        used,
+		Remaining:   remaining,
+		Percent:     percent,
+		StartedAt:   start,
+		EndedAt:     end,
+		NextResetAt: end,
+		CycleDays:   config.CycleDays,
+		Source:      config.Source,
+		Users:       users,
+	}, nil
+}
+
+func trafficPoolWindow(anchorAt int64, cycleDays int, now time.Time) (int64, int64) {
+	cycleSeconds := int64(cycleDays) * 86400
+	if cycleSeconds <= 0 {
+		cycleSeconds = int64(defaultTrafficPoolCycleDays) * 86400
+	}
+	nowUnix := now.UTC().Unix()
+	if anchorAt <= 0 {
+		anchorAt = nowUnix
+	}
+	if nowUnix < anchorAt {
+		return anchorAt, anchorAt + cycleSeconds
+	}
+	start := anchorAt + ((nowUnix-anchorAt)/cycleSeconds)*cycleSeconds
+	return start, start + cycleSeconds
+}
+
 func (s *StatsService) DelOldStats(days int) error {
 	oldTime := time.Now().AddDate(0, 0, -(days)).Unix()
 	db := database.GetDB()
