@@ -1,0 +1,87 @@
+name: Build Linux AMD64 CGO
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-linux-amd64-cgo.yml'
+      - 'frontend/**'
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "25"
+  BUILD_TAGS: "with_quic,with_grpc,with_utls,with_acme,with_gvisor,badlinkname,tfogo_checklinkname0,with_tailscale"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm install
+          npm run build
+          cd ..
+          rm -rf web/html
+          mkdir -p web/html
+          cp -a frontend/dist/. web/html/
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential file
+
+      - name: Build S-UI linux amd64
+        env:
+          CGO_ENABLED: "1"
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          set -euo pipefail
+          go version
+          go env GOOS GOARCH CGO_ENABLED CC
+          go build -trimpath -ldflags="-w -s -checklinkname=0" -tags "${BUILD_TAGS}" -o sui main.go
+          file sui
+          ldd sui
+          mkdir -p s-ui
+          cp sui s-ui/
+          cp s-ui.service s-ui/
+          cp s-ui.sh s-ui/
+          sha256sum s-ui/sui > SHA256SUMS
+          tar -czf s-ui-linux-amd64-cgo.tar.gz s-ui SHA256SUMS
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: s-ui-linux-amd64-cgo
+          path: |
+            s-ui-linux-amd64-cgo.tar.gz
+            SHA256SUMS
+          retention-days: 14
